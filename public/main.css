@@ -3,7 +3,7 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background:#c0c0c0;
+  background: #f4f4f4;
 }
 
 /* Container for the entire page */
@@ -17,21 +17,85 @@ body {
 /* Selections div */
 #selections {
   display: flex;
-  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 20px;
+  background-color: #e8e8e8;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Title styling */
+.title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  border-bottom: 1px solid #d0d0d0;
+  padding-bottom: 5px;
+  color: #333;
+}
+
+/* Column titles */
+.column-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  border-bottom: 1px solid #d0d0d0;
+  padding-bottom: 5px;
+}
+
+/* Individual selection columns */
+.selection-column {
+  display: flex;
+  flex-direction: column; /* Stack items vertically inside each column */
+  padding: 10px;
+  min-width: 120px; /* Set a minimum width for each column */
+}
+
+.selection-section {
+  padding: 10px;
+}
+
+/* Styling for rows in selection columns */
+.row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.batch-size-radio, .device-radio {
+  margin-right: 10px;
+}
+
+.checkbox {
+  margin-right: 5px;
+}
+
+/* SVG styles for resolution and quantization */
+.model-svg, .resolution-svg, .quantization-svg {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+}
+
+#model-res-quant-selection {
+  margin-left: 100px;
+  display: flex; /* Make it a flex container */
+  align-items: flex-start;
 }
 
 /* Left side table */
 #table {
   width: 30%;
-  overflow-y: scroll; /* Add a scrollbar if the content overflows */
+  overflow-y: scroll;
+  margin-right: 20px; /* Separation from the main content */
 }
 
 /* Right side highlight bar */
 #highlight-bar {
   width: 30%;
   padding: 20px;
-  background-color: #f0f0f0;
+  background-color: #ffffff;
+  margin-left: 20px; /* Separation from the main content */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* Content div for charts */
@@ -40,48 +104,5 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-
-
-
-
-#model-res-quant-selection {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.selection-column {
-  flex: 1;
-  padding: 10px;
-}
-
-.column-title {
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-}
-
-.checkbox {
-  margin-right: 5px;
-}
-
-.resolution-svg {
-  width: 20px;
-  height: 20px;
-  margin-right: 5px;
-  fill: red;
-  stroke: black;
-}
-
-.quantization-svg {
-  width: 20px;
-  height: 20px;
-  margin-right: 5px;
+  margin-top: 20px;
 }

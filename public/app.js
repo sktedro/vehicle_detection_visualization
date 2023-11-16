@@ -62,66 +62,103 @@ const inferenceEngines = ["tensorrt", "onnxruntime"];
 const mAPMetrics = ["bbox_mAP", "bbox_mAP_50", "bbox_mAP_75", "bbox_mAP_s",
     "bbox_mAP_m", "bbox_mAP_l"]
 
-// Get the device selection div
-const deviceSelectionDiv = document.getElementById('device-selection');
 
-// Create a title
-const deviceTitle = document.createElement('div');
-deviceTitle.innerText = 'Select a Device:';
-deviceSelectionDiv.appendChild(deviceTitle);
+// Initialize all selection divs
+function initSelections() {
+  initDeviceSelection();
+  initBatchSizeSelection();
+  initModelResolutionQuantizationSelection();
+}
 
-// Generate radio buttons for each device
-devices.forEach((device) => {
+
+
+// Initializing device selection
+function initDeviceSelection() {
+  const deviceSelectionDiv = document.getElementById('device-selection');
+
+  // Generate and append radio buttons for each device
+  devices.forEach(device => {
+    deviceSelectionDiv.appendChild(createDeviceRow(device));
+  });
+}
+
+// Function to handle row clicks
+function handleRowClick(event) {
+  // Find the nearest ancestor row of the clicked element
+  const row = event.target.closest('.row');
+
+  // Find the radio button or checkbox within the row
+  const input = row.querySelector('input[type="radio"], input[type="checkbox"]');
+
+  // Toggle the checked state, only if the click wasn't directly on the input
+  if (input && event.target !== input) {
+    input.checked = !input.checked;
+  }
+}
+
+// Creating a row for device selection
+function createDeviceRow(device) {
   const row = document.createElement('div');
   const radioButton = document.createElement('input');
   radioButton.type = 'radio';
   radioButton.name = 'device';
   radioButton.value = device;
+  radioButton.className = 'device-radio';
   row.appendChild(radioButton);
 
   const label = document.createElement('label');
   label.innerText = deviceTranslations[device];
   row.appendChild(label);
 
-  deviceSelectionDiv.appendChild(row);
-});
+  row.classList.add('row');
+  row.addEventListener('click', handleRowClick);
 
+  return row;
+}
 
-// Get the batch size selection div
-const batchSizeSelectionDiv = document.getElementById('batch-size-selection');
+// Initializing batch size selection
+function initBatchSizeSelection() {
+  const batchSizeSelectionDiv = document.getElementById('batch-size-selection');
 
-// Create a title
-const batchSizeTitle = document.createElement('div');
-batchSizeTitle.innerText = 'Select a Batch Size:';
-batchSizeSelectionDiv.appendChild(batchSizeTitle);
+  // Sort batch sizes numerically and generate radio buttons
+  batchSizes.sort((a, b) => Number(a) - Number(b));
+  batchSizes.forEach(batchSize => {
+    batchSizeSelectionDiv.appendChild(createBatchSizeRow(batchSize));
+  });
+}
 
-// Sort batch sizes numerically
-batchSizes.sort((a, b) => Number(a) - Number(b));
-
-// Generate radio buttons for each batch size
-batchSizes.forEach((batchSize) => {
+// Creating a row for batch size selection
+function createBatchSizeRow(batchSize) {
   const row = document.createElement('div');
   const radioButton = document.createElement('input');
   radioButton.type = 'radio';
   radioButton.name = 'batch-size';
   radioButton.value = batchSize;
+  radioButton.className = 'batch-size-radio';
   row.appendChild(radioButton);
 
   const label = document.createElement('label');
   label.innerText = batchSize;
   row.appendChild(label);
 
-  batchSizeSelectionDiv.appendChild(row);
-});
+  row.classList.add('row');
+  row.addEventListener('click', handleRowClick);
 
+  return row;
+}
 
-
+function initModelResolutionQuantizationSelection() {
+  const selectionDiv = document.getElementById('model-res-quant-selection');
+  models.forEach(model => selectionDiv.querySelector('.model-column').appendChild(createModelRow(model)));
+  resolutions.forEach(resolution => selectionDiv.querySelector('.resolution-column').appendChild(createResolutionRow(resolution)));
+  quantizations.forEach(quantization => selectionDiv.querySelector('.quantization-column').appendChild(createQuantizationRow(quantization)));
+}
 
 function createDataPointSVG(model, resolution, quantization) {
   const svgns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgns, 'svg');
-  svg.setAttribute('width', '20'); // Adjust the width as needed
-  svg.setAttribute('height', '20'); // Adjust the height as needed
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
 
   const shape = resolutionToShape[resolution];
   const color = modelToColor[model];
@@ -194,6 +231,9 @@ function createRow(className, svgElement, labelText) {
   row.appendChild(svgElement);
   row.appendChild(label);
 
+  row.classList.add('row');
+  row.addEventListener('click', handleRowClick);
+
   return row;
 }
 
@@ -223,27 +263,5 @@ function createQuantizationRow(quantization) {
   return createRow('checkbox', quantizationCircle, labelText);
 }
 
-
-
-
-
-// Get the model-res-quant-selection div
-const selectionDiv = document.getElementById('model-res-quant-selection');
-
-// Create rows for model selection
-for (const model of models) {
-  const row = createModelRow(model);
-  selectionDiv.querySelector('.selection-column:nth-child(1)').appendChild(row);
-}
-
-// Create rows for resolution selection
-for (const resolution of resolutions) {
-  const row = createResolutionRow(resolution);
-  selectionDiv.querySelector('.selection-column:nth-child(2)').appendChild(row);
-}
-
-// Create rows for quantization selection
-for (const quantization of quantizations) {
-  const row = createQuantizationRow(quantization);
-  selectionDiv.querySelector('.selection-column:nth-child(3)').appendChild(row);
-}
+// Initialize everything
+initSelections();
