@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>YOLOv8 Benchmark</title>
+  <link href="./public/main.css" rel="stylesheet">
+  <script src="./public/d3.v7.js"></script>
+  <script type="module" src="./public/app.js"></script>
+</head>
+<body>
+  <div id="container">
+    <div id="selections">
+      <div id="device-selection">
+      </div>
+      <div id="batch-size-selection">
+      </div>
+
+      <div id="model-res-quant-selection">
+        <div class="selection-column">
+          <div class="column-title">Model</div>
+        </div>
+        <div class="selection-column">
+          <div class="column-title">Resolution</div>
+        </div>
+        <div class="selection-column">
+          <div class="column-title">Quantization</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="table">
+      <!-- Add your table content here -->
+    </div>
+
+    <div id="charts">
+      <!-- Add your D3 charts here -->
+    </div>
+
+    <div id="highlight-bar">
+      <!-- Add your highlight bar content here -->
+    </div>
+  </div>
+</body>
+</html>
