@@ -112,14 +112,15 @@ body {
   align-items: flex-start;
 }
 
-/* Left side table */
 #table {
-  width: 20%;
+  min-width: 310px;
   padding: 10px;
   background-color: #ffffff;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   margin-right: 2%;
+  display: flex;
+  flex-direction: column;
 }
 
 #highlight-bar {
@@ -153,3 +154,86 @@ body {
 .chart-container:last-child {
   margin-bottom: 0;
 }
+
+
+#chart-1, #chart-2, #chart-3{
+  cursor: crosshair;
+}
+
+
+
+
+
+
+
+
+
+
+.table-header {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  background-color: #f0f0f0;
+}
+
+.reset-button {
+  margin-left: auto;
+  cursor: pointer;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  font-weight: bold;
+}
+
+.table-row {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 5px;
+  transition: background-color 0.2s;
+}
+
+.table-row:hover {
+  background-color: #f0f0f0; /* Hover effect */
+}
+.table-row.active {
+  background-color: rgba(0,128,255,0.5);
+}
+
+.table-svg {
+  width: 30px; /* Adjust as needed */
+  height: 30px; /* Adjust as needed */
+  margin-right: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-text {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  margin-left: 5px;
+}
+
+.table-checkbox input {
+  display: none;
+}
+
+.table-text-model{
+  width: 100px;
+}
+.table-text-resolution{
+  width: 70px;
+}
+.table-text-quantization{
+  text-align: left;
+  width: 50px;
+}
+

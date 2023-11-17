@@ -4,6 +4,9 @@ import { data } from './dataLoader.js';
 TODOs
 
 - zooming website makes the chart 1 take the whole page width
+- hover on data point anywhere to show FPS and mAP and other details
+- chart 2
+- chart 3
 */
 
 // Dictionary to translate device values
@@ -80,13 +83,16 @@ let selectedQuantizations = quantizations;
  * selected batch size and device)
  */
 let selectedModelCombinations = [];
-let prevSelectedModelCombinations = [];
-
+/**
+ * Contain a boolean for any possible combination of model, resolution and
+ * quantization - true if it was not filtered out, false if the user doesn't
+ * want to show it
+ */
+let additionalFilter = {};
+let filteredModelCombinations = [];
 
 const chart1Div = d3.select("#chart-1");
 let chart1Svg = null;
-
-// Chart 1 coordinates tooltip
 let chart1Tooltip = null;
 chart1Div.on('mousemove', (event) => {
   const [x, y] = d3.pointer(event);
@@ -100,176 +106,16 @@ chart1Div.on('mousemove', (event) => {
     .style('visibility', 'visible');
 });
 chart1Div.on('mouseout', () => {
-  // Hide the tooltip when the cursor leaves the chart
   chart1Tooltip.style('visibility', 'hidden');
 });
 
+const tableDiv = document.getElementById('table');
 
-function handleRowClick(event) {
-  const row = event.target.closest('.row');
-  const input = row.querySelector('input[type="radio"], input[type="checkbox"]');
 
-  if (input) {
-    // Handle radio buttons
-    if (input.type === 'radio') {
-      if (input.checked) return; // Prevent deselection
+/*
+ * Get SVG element for a data point
+ */
 
-      const allRadios = document.querySelectorAll(`input[name="${input.name}"]`);
-      allRadios.forEach(radio => {
-        radio.closest('.row').classList.remove('active');
-      });
-
-      input.checked = true;
-      row.classList.add('active');
-
-      // Update global variable based on the input name
-      if (input.name === 'device') {
-        selectedDevice = input.value
-      } else if (input.name === 'batch-size') {
-        selectedBatchSize = input.value;
-      }
-    }
-
-    // Handle checkboxes
-    if (input.type === 'checkbox') {
-      input.checked = !input.checked;
-      row.classList.toggle('active', input.checked);
-
-      // Update global arrays based on checkbox name
-      updateSelectedArrays(input.name, input.value, input.checked);
-    }
-    updateModelCombinations();
-    updateSelection();
-  }
-  // console.log(selectedBatchSize)
-  // console.log(selectedDevice)
-  // console.log(selectedModels);
-  // console.log(selectedResolutions);
-  // console.log(selectedQuantizations)
-}
-
-function updateSelection(){
-  drawChart1();
-}
-
-// Function to update global arrays
-function updateSelectedArrays(name, value, checked) {
-  let arrayToUpdate;
-  if (name === 'model') {
-    arrayToUpdate = selectedModels;
-  } else if (name === 'resolution') {
-    arrayToUpdate = selectedResolutions;
-  } else if (name === 'quantization') {
-    arrayToUpdate = selectedQuantizations;
-  }
-
-  if (arrayToUpdate) {
-    if (checked && !arrayToUpdate.includes(value)) {
-      arrayToUpdate.push(value);
-    } else if (!checked) {
-      const index = arrayToUpdate.indexOf(value);
-      if (index > -1) arrayToUpdate.splice(index, 1);
-    }
-  }
-}
-
-function updateModelCombinations() {
-  prevSelectedModelCombinations = selectedModelCombinations;
-  selectedModelCombinations = [];
-
-  if (selectedDevice && selectedBatchSize && selectedModels.length > 0 && selectedResolutions.length > 0 && selectedQuantizations.length > 0) {
-    selectedModels.forEach(model => {
-      selectedResolutions.forEach(resolution => {
-        selectedQuantizations.forEach(quantization => {
-          // Check if the combination exists in the data
-          if (data[selectedDevice] && data[selectedDevice][model] && data[selectedDevice][model][resolution]) {
-            const inferenceBackend = data[selectedDevice][model][resolution]["tensorrt"] ? "tensorrt" : "onnxruntime";
-            if (data[selectedDevice][model][resolution][inferenceBackend] && data[selectedDevice][model][resolution][inferenceBackend][quantization]) {
-              if (data[selectedDevice][model][resolution][inferenceBackend][quantization][selectedBatchSize]) {
-                selectedModelCombinations.push([model, resolution, quantization]);
-              }
-            }
-          }
-        });
-      });
-    });
-  }
-}
-
-// Initializing batch size selection
-function initBatchSizeSelection() {
-  const batchSizeSelectionDiv = document.getElementById('batch-size-selection');
-
-  // Sort batch sizes numerically and generate radio buttons
-  batchSizes.sort((a, b) => Number(a) - Number(b));
-  batchSizes.forEach(batchSize => {
-    batchSizeSelectionDiv.appendChild(createBatchSizeRow(batchSize));
-  });
-  // Click last element (batch size 32)
-  let elems = [...batchSizeSelectionDiv.querySelectorAll('.row')]
-  elems.slice(-1)[0].click()
-}
-
-// Creating a row for batch size selection
-function createBatchSizeRow(batchSize) {
-  const row = document.createElement('div');
-  const radioButton = document.createElement('input');
-  radioButton.type = 'radio';
-  radioButton.name = 'batch-size';
-  radioButton.value = batchSize;
-  radioButton.className = 'batch-size-radio';
-  row.appendChild(radioButton);
-
-  const label = document.createElement('label');
-  label.innerText = batchSize;
-  label.className = 'batch-size-label';
-  row.appendChild(label);
-
-  row.classList.add('row');
-  row.addEventListener('click', handleRowClick);
-
-  return row;
-}
-
-// Initializing device selection
-function initDeviceSelection() {
-  const deviceSelectionDiv = document.getElementById('device-selection');
-
-  // Generate and append radio buttons for each device
-  devices.forEach(device => {
-    deviceSelectionDiv.appendChild(createDeviceRow(device));
-  });
-  deviceSelectionDiv.querySelector('.row').click();
-}
-
-// Creating a row for device selection
-function createDeviceRow(device) {
-  const row = document.createElement('div');
-  const radioButton = document.createElement('input');
-  radioButton.type = 'radio';
-  radioButton.name = 'device';
-  radioButton.value = device;
-  radioButton.className = 'device-radio';
-  row.appendChild(radioButton);
-
-  const label = document.createElement('label');
-  label.className = 'device-label';
-  row.appendChild(radioButton);
-  label.innerText = deviceTranslations[device];
-  row.appendChild(label);
-
-  row.classList.add('row');
-  row.addEventListener('click', handleRowClick);
-
-  return row;
-}
-
-function initModelResolutionQuantizationSelection() {
-  const selectionDiv = document.getElementById('model-res-quant-selection');
-  models.forEach(model => selectionDiv.querySelector('.model-column').appendChild(createModelRow(model)));
-  resolutions.forEach(resolution => selectionDiv.querySelector('.resolution-column').appendChild(createResolutionRow(resolution)));
-  quantizations.forEach(quantization => selectionDiv.querySelector('.quantization-column').appendChild(createQuantizationRow(quantization)));
-}
 
 function getDataPointAttributes(model, resolution, quantization) {
   const shape = resolutionToShape[resolution];
@@ -345,6 +191,180 @@ function createDataPointSVG(model, resolution, quantization) {
   return svg;
 }
 
+/*
+ * Update functions for update chaining
+ */
+
+function selectionChanged(){
+  updateAdditionalFilterTable();
+  filterChanged();
+}
+
+function filterChanged(){
+  drawChart1();
+}
+
+/*
+ * Selection functions
+ */
+
+
+function handleSelectionRowClick(event) {
+  const row = event.target.closest('.row');
+  const input = row.querySelector('input[type="radio"], input[type="checkbox"]');
+
+  if (input) {
+    // Handle radio buttons
+    if (input.type === 'radio') {
+      if (input.checked) return; // Prevent deselection
+
+      const allRadios = document.querySelectorAll(`input[name="${input.name}"]`);
+      allRadios.forEach(radio => {
+        radio.closest('.row').classList.remove('active');
+      });
+
+      input.checked = true;
+      row.classList.add('active');
+
+      // Update global variable based on the input name
+      if (input.name === 'device') {
+        selectedDevice = input.value
+      } else if (input.name === 'batch-size') {
+        selectedBatchSize = input.value;
+      }
+    }
+
+    // Handle checkboxes
+    else if (input.type === 'checkbox') {
+      input.checked = !input.checked;
+      row.classList.toggle('active', input.checked);
+
+      // Update global arrays based on checkbox name
+      updateSelectedArrays();
+    }
+
+    updateModelCombinations();
+    selectionChanged();
+  }
+  // console.log(selectedBatchSize)
+  // console.log(selectedDevice)
+  // console.log(selectedModels);
+  // console.log(selectedResolutions);
+  // console.log(selectedQuantizations)
+}
+
+function updateSelectedArrays() {
+  selectedModels = Array.from(document.querySelectorAll('.selection-column.model-column .row.active input'))
+    .map(input => input.value);
+
+  selectedResolutions = Array.from(document.querySelectorAll('.selection-column.resolution-column .row.active input'))
+    .map(input => input.value);
+
+  selectedQuantizations = Array.from(document.querySelectorAll('.selection-column.quantization-column .row.active input'))
+    .map(input => input.value);
+}
+
+
+function updateModelCombinations() {
+  selectedModelCombinations = [];
+
+  if (selectedDevice && selectedBatchSize && selectedModels.length > 0 && selectedResolutions.length > 0 && selectedQuantizations.length > 0) {
+    selectedModels.forEach(model => {
+      selectedResolutions.forEach(resolution => {
+        selectedQuantizations.forEach(quantization => {
+          // Check if the combination exists in the data
+          if (data[selectedDevice] && data[selectedDevice][model] && data[selectedDevice][model][resolution]) {
+            const inferenceBackend = data[selectedDevice][model][resolution]["tensorrt"] ? "tensorrt" : "onnxruntime";
+            if (data[selectedDevice][model][resolution][inferenceBackend] && data[selectedDevice][model][resolution][inferenceBackend][quantization]) {
+              if (data[selectedDevice][model][resolution][inferenceBackend][quantization][selectedBatchSize]) {
+                selectedModelCombinations.push([model, resolution, quantization]);
+              }
+            }
+          }
+        });
+      });
+    });
+  }
+}
+
+// Initializing batch size selection
+function initBatchSizeSelection() {
+  const batchSizeSelectionDiv = document.getElementById('batch-size-selection');
+
+  // Sort batch sizes numerically and generate radio buttons
+  batchSizes.sort((a, b) => Number(a) - Number(b));
+  batchSizes.forEach(batchSize => {
+    batchSizeSelectionDiv.appendChild(createBatchSizeRow(batchSize));
+  });
+  // Click last element (batch size 32)
+  let elems = [...batchSizeSelectionDiv.querySelectorAll('.row')]
+  elems.slice(-1)[0].click()
+}
+
+// Creating a row for batch size selection
+function createBatchSizeRow(batchSize) {
+  const row = document.createElement('div');
+  const radioButton = document.createElement('input');
+  radioButton.type = 'radio';
+  radioButton.name = 'batch-size';
+  radioButton.value = batchSize;
+  radioButton.className = 'batch-size-radio';
+  row.appendChild(radioButton);
+
+  const label = document.createElement('label');
+  label.innerText = batchSize;
+  label.className = 'batch-size-label';
+  row.appendChild(label);
+
+  row.classList.add('row');
+  row.addEventListener('click', handleSelectionRowClick);
+
+  return row;
+}
+
+// Initializing device selection
+function initDeviceSelection() {
+  const deviceSelectionDiv = document.getElementById('device-selection');
+
+  // Generate and append radio buttons for each device
+  devices.forEach(device => {
+    deviceSelectionDiv.appendChild(createDeviceRow(device));
+  });
+  deviceSelectionDiv.querySelector('.row').click();
+}
+
+// Creating a row for device selection
+function createDeviceRow(device) {
+  const row = document.createElement('div');
+  const radioButton = document.createElement('input');
+  radioButton.type = 'radio';
+  radioButton.name = 'device';
+  radioButton.value = device;
+  radioButton.className = 'device-radio';
+  row.appendChild(radioButton);
+
+  const label = document.createElement('label');
+  label.className = 'device-label';
+  row.appendChild(radioButton);
+  label.innerText = deviceTranslations[device];
+  row.appendChild(label);
+
+  row.classList.add('row');
+  row.addEventListener('click', handleSelectionRowClick);
+
+  return row;
+}
+
+function initModelResolutionQuantizationSelection() {
+  const selectionDiv = document.getElementById('model-res-quant-selection');
+  models.forEach(model => selectionDiv.querySelector('.model-column').appendChild(createModelRow(model)));
+  resolutions.forEach(resolution => selectionDiv.querySelector('.resolution-column').appendChild(createResolutionRow(resolution)));
+  quantizations.forEach(quantization => selectionDiv.querySelector('.quantization-column').appendChild(createQuantizationRow(quantization)));
+  updateSelectedArrays();
+  updateModelCombinations();
+  selectionChanged();
+}
+
 function createCheckboxAndLabel(value, type, labelText) {
   const checkbox = document.createElement('input');
   checkbox.name = type;
@@ -370,7 +390,7 @@ function createRow(value, type, svgElement, labelText) {
   row.appendChild(label);
 
   row.classList.add('row');
-  row.addEventListener('click', handleRowClick);
+  row.addEventListener('click', handleSelectionRowClick);
   row.click();
 
   return row;
@@ -407,10 +427,150 @@ function createQuantizationRow(quantization) {
 
 
 
+/*
+ * Additional filter table
+ */
 
-initDeviceSelection();
-initBatchSizeSelection();
-initModelResolutionQuantizationSelection();
+function getAllPossibleCombinations() {
+  let allCombinations = [];
+
+  // Assuming data structure is data[device][model][resolution][inferenceBackend][quantization][batchSize]
+  for (const device in data) {
+    for (const model in data[device]) {
+      for (const resolution in data[device][model]) {
+        const inferenceBackend = data[device][model][resolution]["tensorrt"] ? "tensorrt" : "onnxruntime";
+        for (const quantization in data[device][model][resolution][inferenceBackend]) {
+          for (const batchSize in data[device][model][resolution][inferenceBackend][quantization]) {
+            allCombinations.push([model, resolution, quantization]);
+          }
+        }
+      }
+    }
+  }
+  // Remove duplicate combinations if necessary
+  return allCombinations.filter((combination, index, self) => 
+    index === self.findIndex((t) => (
+      t[0] === combination[0] && t[1] === combination[1] && t[2] === combination[2]
+    ))
+  );
+}
+
+
+function initializeAdditionalFilter() {
+  const allCombinations = getAllPossibleCombinations();
+  allCombinations.forEach(([model, resolution, quantization]) => {
+    const key = [model, resolution, quantization].join(':');
+    additionalFilter[key] = true;
+  });
+
+  document.getElementById('reset-button').addEventListener('click', () => {
+    // Click on all inactive rows to toggle them
+    const rows = document.querySelectorAll('#table .table-row:not(.active)');
+    rows.forEach(row => {
+      row.click();
+    });
+
+    // If disabled values are not visible, change them directly in additionalFilter var
+    for (const key in additionalFilter) {
+      additionalFilter[key] = true;
+    }
+
+    // The filter was updated:
+    filterChanged();
+  });
+
+}
+
+function updateFilteredModelCombinations() {
+  filteredModelCombinations = selectedModelCombinations.filter(combination => {
+    const key = combination.join(':');
+    return additionalFilter[key];
+  });
+}
+
+function createFilterTableRow(combination){
+  const rowDiv = document.createElement('div');
+  rowDiv.className = 'table-row';
+  rowDiv.dataset.combination = combination.join(':'); // Add combination as data attribute
+
+  // Visibility Checkbox (hidden)
+  const checkboxDiv = document.createElement('div');
+  checkboxDiv.className = 'table-checkbox';
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkboxDiv.appendChild(checkbox);
+  rowDiv.appendChild(checkboxDiv);
+
+  // SVG Visual
+  const svgDiv = document.createElement('div');
+  svgDiv.className = 'table-svg';
+  const [model, resolution, quantization] = combination;
+  const svgVisual = createDataPointSVG(model, resolution, quantization);
+  svgDiv.appendChild(svgVisual);
+  rowDiv.appendChild(svgDiv);
+
+  // Model, Resolution, Quantization Text
+  const textDiv = document.createElement('div');
+  textDiv.className = 'table-text';
+  textDiv.innerHTML = `<span class='table-text-model'>${modelTranslations[model]}</span><span class='table-text-resolution'>${resolution}</span><span class='table-text-quantization'>${quantizationTranslations[quantization]}</span>`;
+  rowDiv.appendChild(textDiv);
+
+  // Row click event listener
+  rowDiv.addEventListener('click', () => {
+    checkbox.checked = !checkbox.checked;
+    rowDiv.classList.toggle('active', checkbox.checked);
+    additionalFilter[combination.join(':')] = checkbox.checked;
+    updateFilteredModelCombinations();
+    filterChanged();
+  });
+
+  // Set initial state
+  const key = combination.join(':');
+  checkbox.checked = additionalFilter[key];
+  if (checkbox.checked) {
+    rowDiv.classList.add('active');
+  }
+
+  return rowDiv;
+}
+
+
+function updateAdditionalFilterTable() {
+  updateFilteredModelCombinations();
+  
+  const existingRows = tableDiv.getElementsByClassName('table-row');
+
+  // Create a map of existing rows for easy access
+  const rowMap = {};
+  Array.from(existingRows).forEach(row => {
+    rowMap[row.dataset.combination] = row;
+  });
+
+  // Clear the table
+  for(const elem of Array.from(document.getElementsByClassName('table-row'))){
+    elem.remove()
+  }
+
+  // Rebuild the table using the order in selectedModelCombinations
+  selectedModelCombinations.forEach(combination => {
+    const combinationKey = combination.join(':');
+    let rowDiv;
+
+    if (rowMap[combinationKey]) {
+      // Use the existing row if it's already in the table
+      rowDiv = rowMap[combinationKey];
+    } else {
+      // Create a new row if it doesn't exist
+      rowDiv = createFilterTableRow(combination);
+    }
+
+    // Append the row in the correct order
+    tableDiv.appendChild(rowDiv);
+  });
+}
+
+
+
 
 /*
  * Chart 1
@@ -443,63 +603,12 @@ function drawChart1() {
 
   const filteredData = getFilteredData();
 
-
-  // Make min and max the second to closest number of multiples of: 1, 2, 5, 10, ...
-  // TODO or just like 2% smaller and 2% larger than the min and max values?
-  const minFPS = d3.min(filteredData, d => d.fps);
-  const maxFPS = d3.max(filteredData, d => d.fps);
-
-  /*
-  let minFPStmp = minFPS;
-  let multiplier = 1;
-  while(minFPStmp < 1){
-    minFPStmp *= 10;
-    multiplier /= 10;
-  }
-  while(minFPStmp > 10){
-    minFPStmp /= 10;
-    multiplier *= 10;
-  }
-  if(minFPStmp < 2){
-    var minX = 0.5;
-  }else if(minFPStmp < 5){
-    var minX = 1;
-  }else{
-    var minX = 2;
-  }
-  minX *= multiplier;
-
-  let maxFPStmp = maxFPS;
-  multiplier = 1;
-  while(maxFPStmp < 1){
-    maxFPStmp *= 10;
-    multiplier /= 10;
-  }
-  while(maxFPStmp > 10){
-    maxFPStmp /= 10;
-    multiplier *= 10;
-  }
-  if(maxFPStmp > 5){
-    var maxX = 20;
-  }else if(maxFPStmp > 2){
-    var maxX = 10;
-  }else{
-    var maxX = 5;
-  }
-  maxX *= multiplier;
-  */
-
-  const minX = minFPS * 0.95;
-  const maxX = maxFPS * 1.05;
-
+  const minX = d3.min(filteredData, d => d.fps) * 0.95;
+  const maxX = d3.max(filteredData, d => d.fps) * 1.05;
   chart1Svg.xScale.domain([minX, maxX]);
 
-  const minMAP = d3.min(filteredData, d => d.mAP) - 0.02;
-  const maxMAP = d3.max(filteredData, d => d.mAP) + 0.03;
-  // const minY = Math.floor(minMAP * 20) / 20;
-  // const maxY = Math.ceil(maxMAP * 20) / 20;
-  const minY = minMAP * 0.95;
-  const maxY = maxMAP * 1.05;
+  const minY = d3.min(filteredData, d => d.mAP) * 0.90;
+  const maxY = d3.max(filteredData, d => d.mAP);
   chart1Svg.yScale.domain([minY, maxY]);
 
   // Update axes
@@ -528,6 +637,7 @@ function drawChart1() {
   // Remove old elements
   points.exit().remove();
 
+  // Add the tooltip
   chart1Tooltip = chart1Svg.append('text')
     .attr('class', 'tooltip')
     .style('visibility', 'hidden');
@@ -535,7 +645,7 @@ function drawChart1() {
 
 
 function getFilteredData() {
-  return selectedModelCombinations.map(([model, resolution, quantization]) => {
+  return filteredModelCombinations.map(([model, resolution, quantization]) => {
     const inferenceBackend = data[selectedDevice][model][resolution]["tensorrt"] ? "tensorrt" : "onnxruntime";
     let deviceData = data[selectedDevice][model][resolution][inferenceBackend][quantization][selectedBatchSize];
     return {
@@ -550,3 +660,14 @@ function getFilteredData() {
 }
 
 
+
+
+
+/*
+ * Initialize the page
+ */
+
+initializeAdditionalFilter();
+initDeviceSelection();
+initBatchSizeSelection();
+initModelResolutionQuantizationSelection();
