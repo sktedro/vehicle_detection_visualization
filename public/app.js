@@ -1,24 +1,16 @@
 import { data } from './dataLoader.js';
 
-/*
-TODOs
-
-- zooming website makes the chart 1 take the whole page width
-- hover on data point anywhere to show FPS and mAP and other details
-- chart 2
-- chart 3
-*/
-
-const maxChartHeight = window.innerHeight * 0.9;
+const tickLabelFontSize = "14px";
+let maxChartHeight = null; // Maximum height of a single chart (to be calculated later)
 
 // Dictionary to translate device values
 const deviceTranslations = {
-  'agx': 'Jetson AGX Xavier',
-  'nx': 'Jetson Xavier NX',
-  'nano': 'Jetson Nano',
-  'mx150': 'MX150',
-  'intel_i7': 'Intel Core i7-9850H',
-  'rpi': 'Raspberry PI',
+  'agx': 'Jetson AGX Xavier (TensorRT)',
+  'nx': 'Jetson Xavier NX (TensorRT)',
+  'nano': 'Jetson Nano (TensorRT)',
+  'mx150': 'MX150 (ONNX Runtime GPU)',
+  'intel_i7': 'Intel Core i7-9850H (ONNX Runtime)',
+  'rpi': 'Raspberry PI (ONNX Runtime)',
 };
 
 // Model to translated name mapping
@@ -39,14 +31,41 @@ const quantizationTranslations = {
 };
 
 // Model to color mapping
-const modelToColor = {
-  'yolov8_m': 'red',
-  'yolov8_l_mobilenet_v2': 'blue',
-  'yolov8_s': 'green',
-  'yolov8_n': 'orange',
-  'yolov8_p': 'purple',
-  'yolov8_f': 'cyan',
+// const modelToColor = {
+//   'yolov8_m': 'red',
+//   'yolov8_l_mobilenet_v2': 'blue',
+//   'yolov8_s': 'green',
+//   'yolov8_n': 'orange',
+//   'yolov8_p': 'purple',
+//   'yolov8_f': 'cyan',
+// };
+const modelToColor = { // better color scheme?
+  'yolov8_m': '#FF5733',   // Red
+  'yolov8_l_mobilenet_v2': '#3385FF',   // Blue
+  'yolov8_s': '#33FF57',   // Green
+  'yolov8_n': '#FFA933',   // Orange
+  'yolov8_p': '#A933FF',   // Purple
+  'yolov8_f': '#33FFFF',   // Cyan
 };
+
+// Pick a color for each device
+// const deviceToColor = {
+//   'agx': 'red',
+//   'nx': 'blue',
+//   'nano': 'green',
+//   'mx150': 'orange',
+//   'intel_i7': 'purple',
+//   'rpi': 'cyan',
+// };
+const deviceToColor = { // better color scheme?
+  'agx': '#FF5733',   // Red
+  'nx': '#3385FF',   // Blue
+  'nano': '#33FF57',   // Green
+  'mx150': '#FFA933',   // Orange
+  'intel_i7': '#A933FF',   // Purple
+  'rpi': '#33FFFF',   // Cyan
+};
+
 
 // Resolution to shape mapping
 const resolutionToShape = {
@@ -129,8 +148,36 @@ chart1Div.on('mouseout', () => {
 const chart2Div = d3.select("#chart-2");
 let chart2Svg = null;
 
+
+const chart3Div = d3.select("#chart-3");
+let chart3Svg = null;
+let chart3Tooltip = null;
+chart3Div.on('mousemove', (event) => {
+  let [x, y] = d3.pointer(event);
+  x -= chart3Margin.left + 10; // 10 for padding of chart-3 div
+  const xValue = chart3Svg.xScale.invert(x);
+  // Update the tooltip's content and position
+  chart3Tooltip.text(`FPS: ${xValue.toFixed(2)}`)
+    .attr('x', parseInt(chart3Div.style("width")) - chart3Tooltip.node().getBBox().width - chart3Margin.left)
+    .attr('y', -5)
+    .style('visibility', 'visible');
+});
+chart3Div.on('mouseout', () => {
+  chart3Tooltip.style('visibility', 'hidden');
+});
+
 const tableDiv = document.getElementById('table');
 
+window.addEventListener('resize', function() {
+  windowResize();
+});
+
+function windowResize(){
+  maxChartHeight = window.innerHeight * 0.8;
+  drawChart1();
+  drawChart2();
+  drawChart3();
+}
 
 /*
  * Get SVG element for a data point
@@ -223,6 +270,7 @@ function selectionChanged(){
 function filterChanged(){
   drawChart1();
   drawChart2();
+  drawChart3();
 }
 
 /*
@@ -267,11 +315,6 @@ function handleSelectionRowClick(event) {
     updateModelCombinations();
     selectionChanged();
   }
-  // console.log(selectedBatchSize)
-  // console.log(selectedDevice)
-  // console.log(selectedModels);
-  // console.log(selectedResolutions);
-  // console.log(selectedQuantizations)
 }
 
 function updateSelectedArrays() {
@@ -337,6 +380,8 @@ function createBatchSizeRow(batchSize) {
   label.className = 'batch-size-label';
   row.appendChild(label);
 
+  row.style.height = "20px";
+
   row.classList.add('row');
   row.addEventListener('click', handleSelectionRowClick);
 
@@ -369,6 +414,8 @@ function createDeviceRow(device) {
   row.appendChild(radioButton);
   label.innerText = deviceTranslations[device];
   row.appendChild(label);
+
+  row.style.height = "20px";
 
   row.classList.add('row');
   row.addEventListener('click', handleSelectionRowClick);
@@ -552,6 +599,8 @@ function createFilterTableRow(combination){
     rowDiv.classList.add('active');
   }
 
+  applyDataTooltip(rowDiv, model, resolution, quantization)
+
   return rowDiv;
 }
 
@@ -597,16 +646,8 @@ function updateAdditionalFilterTable() {
  * Chart 1
  */
 
-const chart1Margin = { top: 40, right: 20, bottom: 30, left: 40 };
+const chart1Margin = { top: 40, right: 20, bottom: 40, left: 50 };
 function drawChart1() {
-
-  let svgWidth = parseInt(chart1Div.style("width")) - chart1Margin.left - chart1Margin.right;
-  let svgHeight = parseInt(chart1Div.style("width")) * 0.5 - chart1Margin.top - chart1Margin.bottom;
-  if(svgHeight > maxChartHeight){
-    let oldSvgHeight = svgHeight;
-    svgHeight = maxChartHeight;
-    svgWidth = svgWidth * (svgHeight / oldSvgHeight);
-  }
 
   if(chart1Svg){
     chart1Svg.remove();
@@ -614,28 +655,38 @@ function drawChart1() {
     chart1Div.select("svg").remove();
   }
 
+  // let divWidth = parseInt(chart1Div.style("width"));
+  // let divWidth = parseInt(chart1Div.node().offsetWidth);
+  let divWidth = parseInt(chart1Div.node().offsetWidth) - chart1Margin.left - chart1Margin.right - 40; // Don't remember why there's 40
+  let svgWidth = divWidth; - chart1Margin.left - chart1Margin.right;
+  let svgHeight = divWidth * 0.5 - chart1Margin.top - chart1Margin.bottom;
+  if(svgHeight > maxChartHeight){
+    let oldSvgHeight = svgHeight;
+    svgHeight = maxChartHeight;
+    svgWidth = svgWidth * (svgHeight / oldSvgHeight);
+  }
+
   chart1Svg = chart1Div.append("svg")
       // .attr("width", width + margin.left + margin.right) // like this, the chart div would keep getting larger on every call of this function, for some reason
-      .attr("width", svgWidth + chart1Margin.left)
+      .attr("width", svgWidth + chart1Margin.left + chart1Margin.right)
       .attr("height", svgHeight + chart1Margin.top + chart1Margin.bottom)
     .append("g")
       .attr("transform", `translate(${chart1Margin.left},${chart1Margin.top})`);
 
-  // TODO Fix this - not a good placement.
   // place FPS to the center and maybe mAP too? Margins would have to be increased
   chart1Svg.append('text').text("mAP")
-    .attr('x', 0)
+    .attr('x', -chart1Margin.left/2)
     .attr('y', -20)
     .attr('font-size', '1.1em')
-    .style('text-anchor', 'end')
+    .style('text-anchor', 'middle')
   chart1Svg.append('text').text("FPS")
     .attr('x', svgWidth)
-    .attr('y', svgHeight + 30)
+    .attr('y', svgHeight + chart1Margin.bottom)
     .attr('font-size', '1.1em')
     .style('text-anchor', 'end')
 
-  // Store scales and axes in the SVG for later access
-  chart1Svg.xScale = d3.scaleLog().range([0, svgWidth - chart1Margin.right]);
+  // Store scales and axes in the SVG
+  chart1Svg.xScale = d3.scaleLog().range([0, svgWidth]);
   chart1Svg.yScale = d3.scaleLinear().range([svgHeight, 0]);
   chart1Svg.xAxisGroup = chart1Svg.append("g").attr("transform", `translate(0,${svgHeight})`);
   chart1Svg.yAxisGroup = chart1Svg.append("g");
@@ -654,15 +705,14 @@ function drawChart1() {
   const xAx = d3.axisBottom(chart1Svg.xScale)
   const yAx = d3.axisLeft(chart1Svg.yScale)
 
-  let fontSize = "16px";
   // chart1Svg.xAxisGroup.call(xAx);
   chart1Svg.xAxisGroup.call(xAx)
     .selectAll('.tick text')
-    .style('font-size', fontSize);
+    .style('font-size', tickLabelFontSize);
   // chart1Svg.yAxisGroup.call(yAx);
   chart1Svg.yAxisGroup.call(yAx)
     .selectAll('.tick text')
-    .style('font-size', fontSize);
+    .style('font-size', tickLabelFontSize);
 
   // Bind data to SVG elements
   const points = chart1Svg.selectAll(".data-point").data(filteredData, d => d.combination);
@@ -674,6 +724,7 @@ function drawChart1() {
     .attr("transform", d => `translate(${chart1Svg.xScale(d.fps) - dataPointRadius / 2}, ${chart1Svg.yScale(d.bbox_mAP) - dataPointRadius / 2})`)
     .each(function(d) {
       this.appendChild(createDataPointSVG(d.model, d.resolution, d.quantization));
+      applyDataTooltip(this, d.model, d.resolution, d.quantization)
     });
 
   // Remove old elements
@@ -709,15 +760,6 @@ function getFilteredData() {
 
 
 
-
-/*
- * Initialize the page
- */
-
-initializeAdditionalFilter();
-initDeviceSelection();
-initBatchSizeSelection();
-initModelResolutionQuantizationSelection();
 
 
 
@@ -810,6 +852,7 @@ function drawChart2(){
     .attr("transform", d => `translate(${getDataPointCoords(d).x - dataPointRadius / 2}, ${getDataPointCoords(d).y - dataPointRadius / 2})`)
     .each(function(d) {
       this.appendChild(createDataPointSVG(d.model, d.resolution, d.quantization));
+      applyDataTooltip(this, d.model, d.resolution, d.quantization)
     });
 
   /**
@@ -962,12 +1005,14 @@ function drawChart2(){
           chart2Svg.append('text')
             .attr('x', maxX + 10)
             .attr('y', maxY + 2)
+            .style('font-size', tickLabelFontSize)
             .text(tickValue.toFixed(1));
         } else if ([0, 3].includes(i)) {
           chart2Svg.append('text')
             .attr('x', maxX)
             .attr('y', maxY + dataPointRadius)
             .style('text-anchor', 'middle')
+            .style('font-size', tickLabelFontSize)
             .text(tickValue.toFixed(1));
         }
       }
@@ -986,3 +1031,257 @@ function drawChart2(){
 }
 
 
+
+
+
+
+// CHART 3
+
+
+
+const chart3Margin = { top: 30, right: 0, bottom: 40, left: 220 };
+function prepareChartData() {
+  let chartData = [];
+  let devices = Object.keys(deviceTranslations)
+
+  getFilteredData().forEach(d => {
+    devices.forEach(device => {
+
+      // let fpsValue = getFPS(combination.model, combination.resolution, combination.quantization, device);
+      const inferenceBackend = data[device][d.model][d.resolution]["tensorrt"] ? "tensorrt" : "onnxruntime";
+      if(!data[device][d.model][d.resolution][inferenceBackend][d.quantization]){
+        return
+      }
+      let fpsValue = data[device][d.model][d.resolution][inferenceBackend][d.quantization][selectedBatchSize]["fps"];
+
+      chartData.push({
+        model: d.model,
+        resolution: d.resolution,
+        quantization: d.quantization,
+        device: device,
+        fps: parseFloat(fpsValue),
+        modelCombination: `${d.model}:${d.resolution}:${d.quantization}`
+      });
+    });
+  });
+
+  return chartData;
+}
+
+
+function drawChart3(){
+  if(chart3Svg){
+    chart3Svg.remove();
+    chart3Svg = null;
+    chart3Div.select("svg").remove();
+  }
+  drawLegend()
+
+  const chart3Data = prepareChartData();
+  if(chart3Data.length === 0){
+    return
+  }
+
+  const combinations = [...new Set(chart3Data.map(d => d.modelCombination))];
+  const devices = Object.keys(deviceTranslations)
+
+  const numRows = combinations.length;
+  const numDevices = devices.length;
+
+  const barHeight = 8;
+  const rowGap = 15;
+  const rowHeight = Math.max(20, numDevices * barHeight); // minimum 20 is for the combination name and icon to be visible normally
+
+  const chartWidth = parseInt(chart3Div.style("width"));
+  const innerWidth = chartWidth - 20 - chart3Margin.left; // 20 is the padding of chart-3 div
+  const innerHeight = (rowHeight + rowGap) * numRows;
+  const chartHeight = innerHeight + chart3Margin.top + chart3Margin.bottom;
+
+  chart3Svg = chart3Div.append("svg")
+    .attr("width", "100%")
+    .attr("height", chartHeight)
+    .append("g")
+    .attr("transform", `translate(${chart3Margin.left},${chart3Margin.top})`);
+
+  let minFPS = d3.min(chart3Data, d => d.fps)
+  let maxFPS = d3.max(chart3Data, d => d.fps)
+  chart3Svg.xScale = d3.scaleLog().range([0, innerWidth]);
+  chart3Svg.xScale.domain([minFPS * 0.9, maxFPS * 1.1]);
+
+  chart3Svg.yScale = d3.scaleBand().rangeRound([0, innerHeight])
+  chart3Svg.yScale.domain(chart3Data.map(d => d.modelCombination));
+
+  chart3Svg.selectAll(".data-point")
+      .data(chart3Data, d => d.modelCombination)
+      .enter()
+      .append("rect")
+      .attr("class", "bar")
+      .attr("x", 0)
+      .attr("y", d => devices.indexOf(d.device) * barHeight + chart3Svg.yScale(d.modelCombination) + rowGap / 2)
+      .attr("width", d => chart3Svg.xScale(d.fps))
+      .attr("height", barHeight)
+      .attr("fill", d => deviceToColor[d.device]);
+
+  // Tick labels: X axis
+  const xAx = d3.axisBottom(chart3Svg.xScale)
+  let xAxisGroup = chart3Svg.append("g").attr("transform", `translate(0,${innerHeight})`);
+  xAxisGroup.call(xAx)
+    .style('font-size', tickLabelFontSize);
+
+  // Tick labels: Y axis
+  const yAxis = d3.axisLeft(chart3Svg.yScale).tickFormat(d => {
+    let [model, resolution, quantization] = d.split(':');
+    return `${modelTranslations[model]} ${resolution} ${quantizationTranslations[quantization]}`;
+  });
+  // Make the Y axis and add SVGs as icons for each combination
+  const yAxisElem = chart3Svg.append("g").call(yAxis)
+    .style('font-size', tickLabelFontSize)
+    .selectAll(".tick")
+    .each(function(d) {
+      let model = d.split(':')[0];
+      let resolution = d.split(':')[1];
+      let quantization = d.split(':')[2];
+      const svgImage = createDataPointSVG(model, resolution, quantization);
+      d3.select(this).append(() => svgImage)
+        .attr("x", -30)
+        .attr("y", -10)
+      applyDataTooltip(this, model, resolution, quantization)
+    });
+  // move text to the left by 30px
+  yAxisElem.selectAll(".tick text")
+    .attr("transform", "translate(-30,0)"); // Move each label 30px to the left
+
+  // Ax titles
+  chart3Svg.append('text').text("Model")
+    .attr('x', - chart3Margin.left / 2)
+    .attr('y', 0)
+    .attr('font-size', '1.1em')
+    .style('text-anchor', 'middle')
+  chart3Svg.append('text').text("FPS")
+    .attr('x', innerWidth)
+    .attr('y', innerHeight + chart3Margin.bottom)
+    .attr('font-size', '1.1em')
+    .style('text-anchor', 'end')
+
+  chart3Tooltip = chart3Svg.append('text')
+    .attr('class', 'tooltip')
+    .style('visibility', 'hidden');
+
+  // Bar color legend
+  drawLegend();
+}
+
+function drawLegend() {
+  const legendContainer = d3.select('#chart-3-legend');
+
+  legendContainer.selectAll("*").remove();
+  let height = 16;
+  let heightStr = height + "px";
+
+  Object.entries(deviceToColor).forEach(([device, color]) => {
+    let deviceTranslated = deviceTranslations[device];
+    deviceTranslated = deviceTranslated.replace("ONNX Runtime", "ORT");
+    deviceTranslated = deviceTranslated.replace("TensorRT", "TRT");
+    let legendItem = legendContainer.append('div')
+      .style('display', 'inline-block')
+      .style('height', heightStr)
+      .style('margin-right', "20px");
+
+    // Colored square
+    legendItem.append('div')
+      .style('width', heightStr)
+      .style('height', heightStr)
+      .style('display', 'inline-block')
+      .style('vertical-align', "middle")
+      .style('background-color', color);
+
+    legendItem.append('span')
+      .text(deviceTranslated)
+      .style('margin-left', '5px')
+      .style('vertical-align', "middle")
+      .style('display', 'inline-block')
+      .style("font-size", "14px")
+
+  });
+}
+
+
+
+/*
+ * Initialize the page
+ */
+
+windowResize();
+initializeAdditionalFilter();
+initDeviceSelection();
+initBatchSizeSelection();
+initModelResolutionQuantizationSelection();
+
+function applyDataTooltip(elem, model, resolution, quantization){
+  elem.addEventListener('mouseover', function(event) {
+      // Title
+      let txt = `${modelTranslations[model]} ${resolution} ${quantizationTranslations[quantization]}<br><br>`
+
+      // mAP metrics
+      let dataVals = data["agx"][model][resolution];
+      dataVals = dataVals["tensorrt"] ? dataVals["tensorrt"] : dataVals["onnxruntime"];
+      dataVals = dataVals[quantization][selectedBatchSize];
+      for(let key in dataVals){
+        if(key.includes("bbox")){
+          let keyTranslated = key.replace("bbox_", "")
+          let val = parseFloat(dataVals[key]).toFixed(3)
+          txt += `<span>${keyTranslated}<span> <span style="float: right;">${val}</span><br>`
+        }
+      }
+
+      // FPS for each device
+      txt += `<br><span>FPS (batch size ${selectedBatchSize}):</span><br>`
+      for(let i = 0; i < devices.length; i++){
+        let dev = devices[i]
+        let devTranslated = deviceTranslations[dev]
+        let fps = data[dev][model][resolution];
+        fps = fps["tensorrt"] ? fps["tensorrt"] : fps["onnxruntime"];
+        if(!fps[quantization] || !fps[quantization][selectedBatchSize]){
+          continue
+        }
+        fps = fps[quantization][selectedBatchSize]["fps"];
+        fps = parseFloat(fps).toFixed(2)
+        txt += `<span style="padding-left: 10px;">${devTranslated}<span> <span style="float: right; padding-left: 20px;">${fps}</span><br>`
+
+      }
+
+      d3.select('#data-tooltip')
+        .style('opacity', 1)
+        .html(txt)
+
+      let padding = 10;
+      let width = 360; // it has fixed width of 360
+      let height = parseInt(d3.select('#data-tooltip').style("height").replace("px", ""));
+
+      // Don't let it go off the right edge
+      let newTooltipX = event.pageX + padding;
+      let windowWidth = document.documentElement.clientWidth
+      let distFromRight = windowWidth - newTooltipX - 3 * padding;
+      if(distFromRight < width){
+        newTooltipX -= (width - distFromRight)
+      }
+
+      // Keep it above the bottom
+      let newTooltipY = event.clientY + window.scrollY + padding;
+      let windowHeight = document.documentElement.clientHeight
+      let distFromBottom = windowHeight - newTooltipY + window.scrollY - 3 * padding;
+      if(distFromBottom < height){
+        newTooltipY -= (height - distFromBottom)
+      }
+
+      d3.select('#data-tooltip')
+        .style("width", width + "px")
+        .style('left', newTooltipX + 'px')
+        .style('top', newTooltipY + 'px');
+
+    })
+  elem.addEventListener('mouseout', function() {
+      d3.select('#data-tooltip').style('opacity', 0);
+    });
+
+}

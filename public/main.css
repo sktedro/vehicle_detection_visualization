@@ -4,18 +4,30 @@ body {
   margin: 0;
   padding: 0;
   background: #f4f4f4;
+  min-width: 1440px;
 }
 
-/* Container for the entire page */
+#data-tooltip{
+  position: absolute;
+  opacity: 0;
+  font-family: monospace;
+  pointer-events: none;
+  background-color: #fff;
+  border: 5px solid rgba(0,128,255,0.5);
+  border-radius: 5px;
+  padding: 5px;
+}
+
 #container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   padding: 20px;
+  padding-right: 10px;
+  
 }
 
 /* Selections div */
-#selections {
+
+#selections, #help, #footer {
   display: flex;
   align-items: flex-start;
   margin-bottom: 20px;
@@ -75,6 +87,10 @@ body {
   /* color: white; */
 }
 
+#device-selection, #batch-size-selection{
+  white-space: nowrap;
+}
+
 .batch-size-radio, .device-radio {
   margin-right: 10px;
 }
@@ -98,7 +114,7 @@ body {
 }
 
 #model-res-quant-selection {
-  margin-left: 100px;
+  margin-left: 60px;
   display: flex; /* Make it a flex container */
   align-items: flex-start;
 }
@@ -130,6 +146,11 @@ body {
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   margin-left: 2%;
+}
+
+#help{
+  margin-left: 30px;
+  width: 100%;
 }
 
 /* Charts container styling */

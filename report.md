@@ -1,3 +1,9 @@
+---
+header-includes:
+  - \usepackage{geometry}
+  - \geometry{margin=1in}
+---
+
 # OBJECT DETECTION BENCHMARK
 
 This tool visualizes the performance statistics of 13 YOLOv8 models (6 architectures and 6 input resolutions) trained for vehicle detection. Tests were conducted on 6 devices with 6 different batch sizes from 1 to 32 and quantizations to FP16 and INT8 were included. It should help when choosing the right architecture, input resolution and device for any vehicle detection task.
@@ -6,50 +12,8 @@ This file will contain some information about the underlying data and how they w
 
 Built using the D3 JavaScript library [https://d3js.org/](https://d3js.org/)
 
-### Install
 
-`npm install`
-
-### Start
-
-`node index.js`
-
-
-# Data
-
-### Models (and their input resolutions)
-
-- YOLOv8 Medium 640x384
-- YOLOv8 with MobileNetV2 backbone 512x288
-- YOLOv8 Small 640x384
-- YOLOv8 Nano 640x384
-- YOLOv8 Nano 512x288
-- YOLOv8 Nano 448x256
-- YOLOv8 Pico 512x288
-- YOLOv8 Pico 448x256
-- YOLOv8 Pico 384x224
-- YOLOv8 Femto 512x288
-- YOLOv8 Femto 448x256
-- YOLOv8 Femto 384x224
-- YOLOv8 Femto 352x192
-
-### Quantizations
-
-- FP32 (original)
-- FP16 (only on NVIDIA Jetson devices using TensorRT)
-- INT8 (only on NVIDIA Jetson AGX Xavier and Xavier NX - Nano does not support INT8)
-
-### Devices Benchmarked (and their inference engines)
-
-- NVIDIA Jetson AGX Xavier (TensorRT)
-- NVIDIA Jetson Xavier NX (TensorRT)
-- NVIDIA Jetson Nano (TensorRT)
-- NVIDIA MX150 (ONNX Runtime for GPU)
-- Intel Core i7-9850H (ONNX Runtime) - a single CPU thread
-- Raspberry Pi 4B (ONNX Runtime) - a single CPU thread
-
-
-### Format
+# Data Format
 
 All collected data are present in a single JSON file of format:
 ```

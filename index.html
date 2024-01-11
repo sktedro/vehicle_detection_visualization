@@ -8,13 +8,15 @@
   <script type="module" src="./public/app.js"></script>
 </head>
 <body>
+  <div id="data-tooltip"></div>
+
   <div id="container">
     <div id="selections">
-      <div id="batch-size-selection" class="selection-section">
-        <div class="title">Batch Size</div>
-      </div>
       <div id="device-selection" class="selection-section">
         <div class="title">Device</div>
+      </div>
+      <div id="batch-size-selection" class="selection-section">
+        <div class="title">Batch Size</div>
       </div>
       <div id="model-res-quant-selection">
         <div class="selection-column model-column">
@@ -28,7 +30,28 @@
         </div>
       </div>
     </div>
+    <div id="help" style="display: inline-block">
+      <div class="header">
+        <span style="font-weight: bold; padding: 10px;">YOLOv8 Benchmark: How to Use</span>
+      </div>
+      <div class="content" style="padding: 10px">
+        <span>
+          This is a visualization of results obtained by training 13 different YOLOv8 models for vehicle detection and testing them on 6 devices with several additional settings. <br>
+          <ol>
+            <li>Select a device and batch size closest to your interest.</li>
+            <li>Deselect models (architectures, resolutions, quantization) which you want to inherently ignore.</li>
+            <li>Investigate chart 1 (compare performances) and use the additional filter to further filter out unsuitable models.</li>
+            <li>Use chart 2 to make sure the selected models perform well in all relevant use-cases.</li>
+            <li>Use chart 3 to compare FPS of models on each device.</li>
+          </ol>
+          Remember that on chart 1 and 3, in the top right corner, you can see the precise values for the current cursor position. <br>
+          <br>
+          To see precise mAP / FPS values, you can hover with your mouse on the corresponding data points (on rows in Additional Filter, data points in chart 1 and 2, and Y-axis labels in chart 3).
+        </span>
+      </div>
+    </div>
   </div>
+
 
   <div id="content-area">
 
@@ -45,11 +68,26 @@
       <div id="chart-2" class="chart-container">
       </div>
       <div id="chart-3" class="chart-container">
+        <div id="chart-3-legend"></div>
       </div>
     </div>
 
-    <!-- <div id="highlight-bar">
-    </div> -->
+    <!-- TODO footer with disclaimer (as in console that some values are missing) and author and such -->
+  </div>
+
+  <div id="footer" style="display:block; text-align: center; width: 50%; margin: 10px auto;">
+    Patrik Skaloš 2024
+    <br>
+    <a href="https://github.com/sktedro/vehicle_detection_visualization">Benchmark Project GitHub Repository</a>
+    <br>
+    <a href="https://github.com/sktedro/vehicle_detection_for_embedded_platforms">Visualization Project GitHub Repository</a>
+    <br>
+    Note: Data is missing for some data points (eg. on NVIDIA MX150 with model
+    YOLOv8 Medium 640x384, the model does not fit into the memory with batch
+    size 32 nor 16). In cases when it's safe, the missing values are
+    artificially added (in the used example, both the mAP and FPS is the same as
+    for batch size 8). Check the console to see which values were missing and
+    were substituted.
   </div>
 </body>
 </html>

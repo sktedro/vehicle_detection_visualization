@@ -74,7 +74,7 @@ function loadData() {
                   newBatchSize = String(parseInt(newBatchSize) / 2);
                 }
                 currentCombination["fps"] = data[device][model][resolution][backend][quantization][newBatchSize]["fps"];
-                console.log(`TODO For data point: ${device}, ${model}, ${resolution}, ${backend}, ${quantization}, ${batchSize}: Wanted batch size ${batchSize} but only have ${newBatchSize}`)
+                console.log(`MISSING DATA for data point: ${device}, ${model}, ${resolution}, ${backend}, ${quantization}, ${batchSize}: wanted batch size ${batchSize} but only have batch size ${newBatchSize}`)
               }
 
               // Missing mAP
@@ -86,7 +86,7 @@ function loadData() {
                 currentCombination["bbox_mAP_s"] = reference["bbox_mAP_s"];
                 currentCombination["bbox_mAP_m"] = reference["bbox_mAP_m"];
                 currentCombination["bbox_mAP_l"] = reference["bbox_mAP_l"];
-                console.log(`TODO For data point: ${device}, ${model}, ${resolution}, ${backend}, ${quantization}, ${batchSize}: mAP values taken from AGX Xavier with batch size 1`)
+                console.log(`MISSING DATA for data point: ${device}, ${model}, ${resolution}, ${backend}, ${quantization}, ${batchSize}: mAP values are missing and will be copied from AGX Xavier with batch size 1`)
               }
             }
           }
